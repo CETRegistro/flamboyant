@@ -11,6 +11,12 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
 from pathlib import Path
+import dj_database_url
+from dotenv import load_dotenv
+from urllib.parse import urlparse
+
+import os
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -37,7 +43,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'example'
+    'flamboyant',
+    'lavanderia'
 ]
 
 MIDDLEWARE = [
@@ -75,8 +82,23 @@ WSGI_APPLICATION = 'api.wsgi.app'
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 # Note: Django modules for using databases are not support in serverless
 # environments like Vercel. You can use a database over HTTP, hosted elsewhere.
+db_url = os.getenv("POSTGRES_URL")
+result = urlparse(db_url)
 
-DATABASES = {}
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': result.path[1:],  # remove a barra inicial
+        'USER': result.username,
+        'PASSWORD': result.password,
+        'HOST': result.hostname,
+        'PORT': result.port,
+        'OPTIONS': {
+            'sslmode': 'require',
+        },
+    }
+}
+
 
 
 # Password validation
@@ -119,3 +141,4 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+APPEND_SLASH=False

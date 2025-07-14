@@ -1,0 +1,99 @@
+<!-- templates/item_list.html -->
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8" />
+    <title>Lista de Itens</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container my-4">
+    <h1 class="mb-4">Itens</h1>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Categoria</th>
+                    <th>Serviço</th>
+                    <th>Quantidade</th>
+                    <th>Status</th>
+                    <th>Tamanho</th>
+                    <th>Observações</th>
+                    <th>Criado em</th>
+                    <th>Atualizado em</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in itens %}
+                <tr>
+                    <td>{{ item.id }}</td>
+                    <td>{{ item.categoria.nome }}</td>
+                    <td>{{ item.servico.nome }}</td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            {% csrf_token %}
+                            <button class="btn btn-sm btn-outline-danger me-2 btn-diminuir" data-id="{{ item.id }}">-</button>
+                            <span id="quantidade-{{ item.id }}">{{ item.quantidade }}</span>
+                            <button class="btn btn-sm btn-outline-success ms-2 btn-aumentar" data-id="{{ item.id }}">+</button>
+                        </div>
+                    </td>
+
+                    <td>{{ item.status }}</td>
+                    <td>{{ item.tamanho }}</td>
+                    <td>{{ item.observacoes|default:"-" }}</td>
+                    <td>{{ item.criado_em|date:"d/m/Y H:i" }}</td>
+                    <td>{{ item.atualizado_em|date:"d/m/Y H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="text-center">Nenhum item encontrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Bootstrap 5 JS Bundle (Popper + Bootstrap) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(function() {
+    function ajustarQuantidade(itemId, delta) {
+        $.ajax({
+            url: `/item/${itemId}/ajustar_quantidade/`,
+            method: 'POST',
+            data: {
+                'delta': delta,
+                'csrfmiddlewaretoken': '{{ csrf_token }}',
+            },
+            success: function(response) {
+                if (response.status === 'ok') {
+                    $(`#quantidade-${response.item_id}`).text(response.nova_quantidade);
+                }
+            },
+            error: function() {
+                alert('Erro ao ajustar quantidade.');
+            }
+        });
+    }
+
+    $('.btn-aumentar').click(function() {
+        var itemId = $(this).data('id');
+        ajustarQuantidade(itemId, 1);
+    });
+
+    $('.btn-diminuir').click(function() {
+        var itemId = $(this).data('id');
+        ajustarQuantidade(itemId, -1);
+    });
+});
+</script>
+
+</body>
+</html>
