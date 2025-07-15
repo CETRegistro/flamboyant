@@ -16,14 +16,12 @@
                 <tr>
                     <th>ID</th>
                     <th>Categoria</th>
-                    <th>Serviço</th>
-                    <th>Quantidade</th>
-                    <th>Status</th>
+                    <th>Quantidade</th>                    
                     <th>Tamanho</th>
                     <th>Observações</th>
                     <th>Criado em</th>
                     <th>Atualizado em</th>
-                    <th>Envio</th>
+                    <th>Retornou</th>
                 </tr>
             </thead>
             <tbody>
@@ -31,19 +29,16 @@
                 <tr>
                     <td>{{ item.id }}</td>
                     <td>{{ item.categoria.nome }}</td>
-                    <td>{{ item.servico.nome }}</td>
-                    <td>{{ item.quantidade }}</td>
-
-                    <td>{{ item.status }}</td>
+                    <td>{{ item.quantidade }}</td>                    
                     <td>{{ item.tamanho }}</td>
                     <td>{{ item.observacoes|default:"-" }}</td>
                     <td>{{ item.criado_em|date:"d/m/Y H:i" }}</td>
                     <td>{{ item.atualizado_em|date:"d/m/Y H:i" }}</td>
                     <td>
                         <div class="input-group input-group-sm">
-                            <input type="number" name="retornou_{{ item.id }}" class="form-control" min="0" value="{{ item.retornou|default:0 }}">
-                            <button type="button" class="btn btn-primary salvar-item" data-item-id="{{ item.id }}">Salvar</button>
-                        </div>
+                        <input type="number" name="retornou_{{ item.id }}" class="form-control" min="0" value="{{ item.quantidade|default:0 }}"> 
+                        <button type="button" class="btn btn-primary salvar-item" data-item-id="{{ item.id }}">Salvar</button>
+                    </div>
                     </td>
                 </tr>
                 {% empty %}
@@ -83,7 +78,7 @@
             var valorRetornou = $('input[name="retornou_' + itemId + '"]').val();
 
             $.ajax({
-                url: '{% url "salvar_retorno_item" %}',
+                url: '{% url "criar_servico" %}',
                 type: 'POST',
                 data: {
                     'item_id': itemId,

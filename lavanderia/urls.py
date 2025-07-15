@@ -6,6 +6,7 @@ from .views import *
 
 urlpatterns = [
     path('', lavanderia_flamboyant),
-        path('item/<int:item_id>/ajustar_quantidade/', ajustar_quantidade_ajax, name='ajustar_quantidade_ajax'),
+    path('criar_servico/', criar_servico, name='criar_servico'),
+
 
 ]
