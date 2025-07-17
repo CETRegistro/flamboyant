@@ -79,44 +79,41 @@ def retornar_ao_inventario(request):
 
 
 
-@require_POST # Garante que a view só aceite requisições POST
-@csrf_exempt # APENAS PARA TESTES OU SE VOCÊ GERENCIA O CSRF DE OUTRA FORMA NO FRONTEND. REMOVA PARA PRODUÇÃO COM CSRF_TOKEN DO DJANGO.
+@require_POST
 def criar_servico(request):
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         try:
-            # Obtém os dados da requisição AJAX
             item_id = request.POST.get('item_id')
-            quantidade_servico = int(request.POST.get('quantidade_servico')) # Alterado o nome do campo
-            servico_id = request.POST.get('servico_id') # Alterado o nome do campo
+            quantidade_servico = int(request.POST.get('quantidade_servico'))
+            servico_id = request.POST.get('servico_id')
 
-            # Busca o item de inventário correspondente
             inventario_item = Inventario.objects.get(id=item_id)
             servico_obj = Servico.objects.get(id=servico_id)
 
-            # Cria uma nova OrdemServico
+            # Crie a nova OrdemServico
             nova_ordem = OrdemServico(
                 quantidade=quantidade_servico,
                 categoria=inventario_item.categoria,
                 servico=servico_obj,
-                status='Limpando', # Define um status inicial
+                status='Sujo', # Status inicial
                 tamanho=inventario_item.tamanho,
                 observacoes=f'Ordem criada a partir do inventário ID: {item_id}'
             )
-            
-            # Valida e salva a nova ordem de serviço (isso acionará o método clean e save do modelo)
-            nova_ordem.full_clean()
-            nova_ordem.save()
 
-            return JsonResponse({'status': 'success', 'message': 'Ordem de serviço criada com sucesso!'})
+            nova_ordem.full_clean() # Valida o modelo antes de salvar
+            nova_ordem.save() # Salva e aciona o ajuste de inventário
+
+            return JsonResponse({'status': 'success', 'message': 'Ordem criada e inventário atualizado.'})
 
         except Inventario.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'Item de inventário não encontrado.'}, status=404)
         except Servico.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'Tipo de serviço não encontrado.'}, status=404)
         except ValidationError as e:
+            # Retorna os erros de validação do modelo
             return JsonResponse({'status': 'error', 'message': e.message_dict if hasattr(e, 'message_dict') else str(e)}, status=400)
         except ValueError:
             return JsonResponse({'status': 'error', 'message': 'Quantidade ou ID de serviço inválido.'}, status=400)
         except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+            return JsonResponse({'status': 'error', 'message': f'Erro interno do servidor: {str(e)}'}, status=500)
     return JsonResponse({'status': 'error', 'message': 'Requisição inválida.'}, status=400)
