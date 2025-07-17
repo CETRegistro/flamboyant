@@ -30,7 +30,7 @@ class Inventario(models.Model):
         ('Diversos', 'Diversos'),
     ]
     # Quantidade real em estoque do inventário
-    quantidade = models.IntegerField(default=0) # Removido choices, já que é o estoque total
+    quantidade = models.IntegerField(default=0)
     categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE)    
     tamanho = models.CharField(max_length=10, choices=TAMANHO_CHOICES, default='Único')
     observacoes = models.TextField(blank=True)
@@ -39,7 +39,7 @@ class Inventario(models.Model):
 
     class Meta:
         # Garante que não haja duas entradas de inventário iguais para a mesma categoria e tamanho
-        unique_together = ('categoria', 'tamanho') 
+        unique_together = ('categoria', 'tamanho')
 
     def __str__(self):
         return f'{self.categoria.nome} ({self.tamanho}) - Estoque: {self.quantidade}'
@@ -52,6 +52,7 @@ class OrdemServico(models.Model): # Modelo da gestão de lavanderia
         ('Lavando', 'Lavando'),
         ('Limpo', 'Limpo'),
         ('Retornou com mancha', 'Retornou com mancha'),
+        ('Operação concluída','Operação concluída')
     ]
 
     TAMANHO_CHOICES = [ # Mantenha choices aqui para o Item
@@ -65,13 +66,13 @@ class OrdemServico(models.Model): # Modelo da gestão de lavanderia
     ]
     
     # Campo quantidade, com choices de 1 a 999
-    quantidade = models.IntegerField(choices=[(i, str(i)) for i in range(1, 1000)]) 
+    quantidade = models.IntegerField(choices=[(i, str(i)) for i in range(1, 1000)])
     # Relacionamento ForeignKey para Categoria
-    categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE) 
+    categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE)
     servico = models.ForeignKey(Servico, on_delete=models.CASCADE)
     status = models.CharField(max_length=50, choices=STATUS_CHOICES)
     # Campo tamanho, com choices
-    tamanho = models.CharField(max_length=10, choices=TAMANHO_CHOICES, default='Único') 
+    tamanho = models.CharField(max_length=10, choices=TAMANHO_CHOICES, default='Único')
     observacoes = models.TextField(blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
@@ -80,7 +81,7 @@ class OrdemServico(models.Model): # Modelo da gestão de lavanderia
     def clean(self):
         # Validação personalizada para verificar o estoque no Inventario
         if self.pk: # Se o item já existe, pegue a quantidade anterior para cálculo
-            original_item = Item.objects.get(pk=self.pk)
+            original_item = OrdemServico.objects.get(pk=self.pk) # Corrigido: OrdemServico
             quantidade_anterior = original_item.quantidade
         else: # Se é um novo item
             quantidade_anterior = 0
@@ -90,7 +91,7 @@ class OrdemServico(models.Model): # Modelo da gestão de lavanderia
 
         # Encontra o item de inventário correspondente para a categoria e tamanho
         inventario_item = Inventario.objects.filter(
-            categoria=self.categoria, 
+            categoria=self.categoria,
             tamanho=self.tamanho
         ).first()
 
@@ -106,17 +107,19 @@ class OrdemServico(models.Model): # Modelo da gestão de lavanderia
                 f'Necessário: {diferenca_para_retirar} para este item.'
             )
         
-        # Lógica para o campo 'retornou' - se ele afeta o inventário
-        # Exemplo: Se 'retornou' for maior que a quantidade anterior, e o status indicar retorno ao estoque.
-        # Esta é uma lógica complexa e depende de como você quer que o 'retornou' interaja com o 'Inventario'.
-        # Por enquanto, vamos focar no 'quantidade' do Item retirando do Inventario.
+        # Validação para 'retornou'
+        if self.retornou > self.quantidade:
+            raise ValidationError(
+                'A quantidade retornada não pode ser maior que a quantidade total da ordem de serviço.'
+            )
+
 
     def save(self, *args, **kwargs):
         self.full_clean() # Executa as validações definidas em clean()
 
         # Calcula a diferença para ajustar o inventário
         if self.pk: # Item existente
-            original_item = Item.objects.get(pk=self.pk)
+            original_item = OrdemServico.objects.get(pk=self.pk) # Corrigido: OrdemServico
             quantidade_anterior = original_item.quantidade
             diferenca_para_ajustar = self.quantidade - quantidade_anterior
         else: # Novo item
@@ -127,8 +130,6 @@ class OrdemServico(models.Model): # Modelo da gestão de lavanderia
         
         # Ajusta a quantidade no inventário
         # Assumindo que a criação/modificação de um Item representa uma "saída" do inventário
-        # A lógica de "retorno ao inventário" quando o status muda para "Limpo" ou "Retornou"
-        # precisaria ser tratada separadamente, talvez com signals ou em outra parte do código.
         inventario_item.quantidade -= diferenca_para_ajustar
         inventario_item.save()
 

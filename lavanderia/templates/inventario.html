@@ -5,6 +5,16 @@
     <meta charset="UTF-8" />
     <title>Inventário de itens de Flamboyant</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .clickable-category {
+            cursor: pointer; /* Indica que o elemento é clicável */
+            color: #007bff; /* Cor padrão de link do Bootstrap */
+            text-decoration: underline; /* Sublinha para indicar que é um link */
+        }
+        .clickable-category:hover {
+            color: #0056b3; /* Cor mais escura ao passar o mouse */
+        }
+    </style>
 </head>
 <body>
 <div class="container-fluid p-2">
@@ -16,34 +26,43 @@
                 <tr>
                     <th>ID</th>
                     <th>Categoria</th>
-                    <th>Quantidade</th>                    
+                    <th>Quantidade Disponível</th>
                     <th>Tamanho</th>
                     <th>Observações</th>
                     <th>Criado em</th>
                     <th>Atualizado em</th>
-                    <th>Retornou</th>
+                    <th>Criar Ordem Serviço</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in inventario %}
                 <tr>
                     <td>{{ item.id }}</td>
-                    <td>{{ item.categoria.nome }}</td>
-                    <td>{{ item.quantidade }}</td>                    
+                    <td>
+                        <a href="{% url 'ordens_servico_por_categoria' item.categoria.id %}" class="clickable-category">
+                            {{ item.categoria.nome }}
+                        </a>
+                    </td>
+                    <td>{{ item.quantidade }}</td>
                     <td>{{ item.tamanho }}</td>
                     <td>{{ item.observacoes|default:"-" }}</td>
                     <td>{{ item.criado_em|date:"d/m/Y H:i" }}</td>
                     <td>{{ item.atualizado_em|date:"d/m/Y H:i" }}</td>
                     <td>
                         <div class="input-group input-group-sm">
-                        <input type="number" name="retornou_{{ item.id }}" class="form-control" min="0" value="{{ item.quantidade|default:0 }}"> 
-                        <button type="button" class="btn btn-primary salvar-item" data-item-id="{{ item.id }}">Salvar</button>
-                    </div>
+                            <input type="number" name="quantidade_servico_{{ item.id }}" class="form-control" min="1" max="{{ item.quantidade }}" value="1" placeholder="Qtd. p/ OS">
+                            <select name="servico_id_{{ item.id }}" class="form-select">
+                                {% for servico_opt in servicos %}
+                                <option value="{{ servico_opt.id }}">{{ servico_opt.nome }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="button" class="btn btn-primary criar-ordem-servico" data-item-id="{{ item.id }}">Criar OS</button>
+                        </div>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="9" class="text-center">Nenhum item encontrado.</td>
+                    <td colspan="8" class="text-center">Nenhum item encontrado.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -52,7 +71,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <script>
@@ -73,25 +91,31 @@
         }
         const csrftoken = getCookie('csrftoken');
 
-        $('.salvar-item').on('click', function() {
+        $('.criar-ordem-servico').on('click', function() {
             var itemId = $(this).data('item-id');
-            var valorRetornou = $('input[name="retornou_' + itemId + '"]').val();
+            var quantidadeServico = $('input[name="quantidade_servico_' + itemId + '"]').val();
+            var servicoId = $('select[name="servico_id_' + itemId + '"]').val();
+
+            if (!quantidadeServico || !servicoId) {
+                alert('Por favor, preencha a quantidade e selecione um serviço.');
+                return;
+            }
 
             $.ajax({
                 url: '{% url "criar_servico" %}',
                 type: 'POST',
                 data: {
                     'item_id': itemId,
-                    'retornou': valorRetornou,
+                    'quantidade_servico': quantidadeServico,
+                    'servico_id': servicoId,
                     'csrfmiddlewaretoken': csrftoken
                 },
                 success: function(response) {
                     if (response.status === 'success') {
-                        alert('Item ' + itemId + ' salvo com sucesso: ' + response.message);
-                        // Recarrega a página após o sucesso
-                        location.reload();
+                        alert('Ordem de serviço para o item ' + itemId + ' criada com sucesso: ' + response.message);
+                        location.reload(); // Recarrega a página após o sucesso
                     } else {
-                        alert('Erro ao salvar o item ' + itemId + ': ' + response.message);
+                        alert('Erro ao criar ordem de serviço para o item ' + itemId + ': ' + response.message);
                     }
                 },
                 error: function(xhr, status, error) {
@@ -102,7 +126,7 @@
                     } catch (e) {
                         errorMessage = xhr.responseText || errorMessage;
                     }
-                    alert('Erro ao salvar o item ' + itemId + ': ' + errorMessage);
+                    alert('Erro ao criar ordem de serviço para o item ' + itemId + ': ' + errorMessage);
                 }
             });
         });

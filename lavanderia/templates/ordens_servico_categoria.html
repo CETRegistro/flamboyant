@@ -1,0 +1,152 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8" />
+    <title>Ordens de Serviço para {{ categoria.nome }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .retornar-container {
+            display: flex;
+            align-items: center;
+            gap: 5px; /* Espaçamento entre os elementos */
+        }
+        .retornar-input {
+            width: 80px; /* Ajusta a largura do input */
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid p-2">
+    <h1 class="mb-4">Ordens de Serviço para: {{ categoria.nome }}</h1>
+
+    <a href="{% url 'inventario_lista' %}" class="btn btn-secondary mb-3">Voltar para o Inventário</a>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID OS</th>
+                    <th>Quantidade enviada</th>
+                    <th>Serviço</th>
+                    <th>Status</th>
+                    <th>Tamanho</th>
+                    <th>Observações</th>
+                    <th>Criado em</th>
+                    <th>Atualizado em</th>
+                    <th>Itens Retornados</th>
+                    <th>Retornar ao Estoque</th> </tr>
+            </thead>
+            <tbody>
+                {% for ordem in ordens_servico %}
+                <tr>
+                    <td>{{ ordem.id }}</td>
+                    <td>{{ ordem.quantidade }}</td>
+                    <td>{{ ordem.servico.nome }}</td>
+                    <td>{{ ordem.status }}</td>
+                    <td>{{ ordem.tamanho }}</td>
+                    <td>{{ ordem.observacoes|default:"-" }}</td>
+                    <td>{{ ordem.criado_em|date:"d/m/Y H:i" }}</td>
+                    <td>{{ ordem.atualizado_em|date:"d/m/Y H:i" }}</td>
+                    <td>{{ ordem.retornou }}</td>
+                    <td>
+                        <div class="input-group input-group-sm retornar-container">
+                            <input type="number" 
+                                   name="quantidade_retorno_{{ ordem.id }}" 
+                                   class="form-control retornar-input" 
+                                   min="1" 
+                                   max="{{ ordem.quantidade|add:'-ordem.retornou' }}" 
+                                   value="1"
+                                   placeholder="Qtd">
+                            <button type="button" 
+                                    class="btn btn-success btn-sm retornar-item-inventario" 
+                                    data-ordem-id="{{ ordem.id }}"
+                                    title="Retornar ao Inventário">
+                                <i class="bi bi-arrow-return-left"></i> Retornar
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="10" class="text-center">Nenhuma ordem de serviço encontrada para esta categoria.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+
+<script>
+    $(document).ready(function() {
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+
+        $('.retornar-item-inventario').on('click', function() {
+            var ordemId = $(this).data('ordem-id');
+            var quantidadeRetorno = $('input[name="quantidade_retorno_' + ordemId + '"]').val();
+
+            // Validação simples de input
+            if (!quantidadeRetorno || parseInt(quantidadeRetorno) <= 0) {
+                alert('Por favor, insira uma quantidade válida para retornar.');
+                return;
+            }
+            
+            // Pega o valor máximo permitido para a Ordem de Serviço
+            var maxAllowed = parseInt($('input[name="quantidade_retorno_' + ordemId + '"]').attr('max'));
+            if (parseInt(quantidadeRetorno) > maxAllowed) {
+                alert('A quantidade a ser retornada excede o limite disponível para esta ordem de serviço.');
+                return;
+            }
+
+
+            $.ajax({
+                url: '{% url "retornar_ao_inventario" %}', // Nova URL para a função de retorno
+                type: 'POST',
+                data: {
+                    'ordem_servico_id': ordemId,
+                    'quantidade_retorno': quantidadeRetorno,
+                    'csrfmiddlewaretoken': csrftoken
+                },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        alert('Itens retornados ao inventário com sucesso: ' + response.message);
+                        location.reload(); // Recarrega a página para atualizar os dados
+                    } else {
+                        alert('Erro ao retornar itens: ' + response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    let errorMessage = 'Erro desconhecido.';
+                    try {
+                        const errorResponse = JSON.parse(xhr.responseText);
+                        errorMessage = errorResponse.message || 'Erro no servidor.';
+                    } catch (e) {
+                        errorMessage = xhr.responseText || errorMessage;
+                    }
+                    alert('Erro ao retornar itens: ' + errorMessage);
+                }
+            });
+        });
+    });
+</script>
+
+</body>
+</html>
