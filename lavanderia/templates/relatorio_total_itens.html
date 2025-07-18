@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Relatório de Totais</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container mt-4">
+    <h1 class="mb-4">Total de Itens por Categoria e Tamanho</h1>
+
+    <a href="{% url 'inventario_lista' %}" class="btn btn-secondary mb-3">Voltar para o Inventário</a>
+
+    {% if resultados %}
+        {% for categoria_nome, tamanhos_data in resultados.items %}
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h5 mb-0">Categoria: {{ categoria_nome }}</h2>
+                </div>
+                <div class="card-body">
+                    <table class="table table-striped table-bordered align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tamanho</th>
+                                <th>No Inventário</th>
+                                <th>Em Serviço (OS)</th>
+                                <th>Total Geral</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tamanho_item, dados in tamanhos_data.items %}
+                                <tr>
+                                    <td>{{ tamanho_item }}</td>
+                                    <td>{{ dados.inventario }}</td>
+                                    <td>{{ dados.em_servico }}</td>
+                                    <td><strong>{{ dados.total_geral }}</strong></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p class="alert alert-info">Nenhum item encontrado para gerar o relatório.</p>
+    {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

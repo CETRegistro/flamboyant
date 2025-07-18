@@ -11,6 +11,7 @@ urlpatterns = [
     path('retornar_ao_inventario/', retornar_ao_inventario, name='retornar_ao_inventario'), # Nova URL
     
     path('atualizar-ordem-servico-campo/', atualizar_ordem_servico_campo, name='atualizar_ordem_servico_campo'),
+    path('relatorio-totais/', total_itens_por_categoria_tamanho, name='relatorio_totais'),
 
 
 
