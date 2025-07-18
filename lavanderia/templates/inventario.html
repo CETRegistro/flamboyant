@@ -17,8 +17,12 @@
     </style>
 </head>
 <body>
-<div class="container-fluid p-3"> <h1 class="mb-4 text-center">Inventário de Itens</h1> <div class="table-responsive">
+<div class="container-fluid p-3"> <h1 class="mb-4 text-center">Inventário de Itens</h1>
+    
+     <div class="table-responsive">
+    
         <table class="table table-striped table-bordered align-middle caption-top">
+            <a href="{% url 'relatorio_totais' %}" class="btn btn-secondary mb-3">Relatório geral</a>
             <caption>Itens à disposição dos flats</caption> <thead class="table-dark">
                 <tr>
                     <th scope="col">ID</th> <th scope="col">Categoria</th>

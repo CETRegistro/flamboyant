@@ -14,7 +14,7 @@
     {% if resultados %}
         {% for categoria_nome, tamanhos_data in resultados.items %}
             <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header bg-dark text-white">
                     <h2 class="h5 mb-0">Categoria: {{ categoria_nome }}</h2>
                 </div>
                 <div class="card-body">
@@ -24,7 +24,7 @@
                                 <th>Tamanho</th>
                                 <th>No Inventário</th>
                                 <th>Em Serviço (OS)</th>
-                                <th>Total Geral</th>
+                                <th>Quantidade total</th>
                             </tr>
                         </thead>
                         <tbody>

@@ -53,7 +53,11 @@
                     <td>{{ ordem.id }}</td>
                     <td>{{ ordem.quantidade }}</td>
                     <td>{{ ordem.servico.nome }}</td>
+                    {%if ordem.status == 'Operação concluída'%}
+                    <td class="bg-success">{{ ordem.status }}</td>
+                    {%else%}
                     <td>{{ ordem.status }}</td>
+                    {%endif%}
                     <td>{{ ordem.tamanho }}</td>
                     {# Adicione contenteditable="true" aqui #}
                     <td class="editable-cell" data-ordem-id="{{ ordem.id }}" data-campo="observacoes" contenteditable="true">{{ ordem.observacoes|default:"-" }}</td>

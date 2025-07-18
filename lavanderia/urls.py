@@ -1,5 +1,8 @@
 # example/urls.py
 from django.urls import path
+from django.conf.urls.static import static # Importe static
+from django.conf import settings # Importe settings
+
 
 from .views import *
 
@@ -12,7 +15,6 @@ urlpatterns = [
     
     path('atualizar-ordem-servico-campo/', atualizar_ordem_servico_campo, name='atualizar_ordem_servico_campo'),
     path('relatorio-totais/', total_itens_por_categoria_tamanho, name='relatorio_totais'),
-
-
-
 ]
+
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
