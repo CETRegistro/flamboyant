@@ -118,3 +118,31 @@ def criar_servico(request):
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': f'Erro interno do servidor: {str(e)}'}, status=500)
     return JsonResponse({'status': 'error', 'message': 'Requisição inválida.'}, status=400)
+
+
+# --- NOVA VIEW PARA ATUALIZAR CAMPO ---
+@csrf_exempt
+@require_POST
+def atualizar_ordem_servico_campo(request):
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        try:
+            ordem_servico_id = request.POST.get('ordem_servico_id')
+            campo = request.POST.get('campo')
+            valor = request.POST.get('valor')
+
+            ordem_servico = get_object_or_404(OrdemServico, pk=ordem_servico_id)
+
+            # Valida qual campo está sendo atualizado para evitar atualização de campos não intencionais
+            if campo == 'observacoes':
+                setattr(ordem_servico, campo, valor)
+                ordem_servico.save(update_fields=[campo]) # Salva apenas o campo modificado
+                return JsonResponse({'status': 'success', 'message': f'Campo "{campo}" atualizado com sucesso.', 'novo_valor': valor})
+            else:
+                return JsonResponse({'status': 'error', 'message': 'Campo não permitido para edição via AJAX.'}, status=400)
+
+        except OrdemServico.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Ordem de serviço não encontrada.'}, status=404)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': f'Erro interno do servidor: {str(e)}'}, status=500)
+    return JsonResponse({'status': 'error', 'message': 'Requisição inválida.'}, status=400)
+

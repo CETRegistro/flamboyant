@@ -5,6 +5,7 @@
     <meta charset="UTF-8" />
     <title>Ordens de Serviço para {{ categoria.nome }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         .retornar-container {
             display: flex;
@@ -13,6 +14,14 @@
         }
         .retornar-input {
             width: 80px; /* Ajusta a largura do input */
+        }
+        /* Estilo para células editáveis */
+        .editable-cell {
+            cursor: pointer;
+            border-bottom: 1px dashed #007bff; /* Indicar que é clicável */
+        }
+        .editable-cell:hover {
+            background-color: #f0f0f0;
         }
     </style>
 </head>
@@ -31,11 +40,12 @@
                     <th>Serviço</th>
                     <th>Status</th>
                     <th>Tamanho</th>
-                    <th>Observações</th>
+                    <th>Observações</th> {# Esta coluna será editável #}
                     <th>Criado em</th>
                     <th>Atualizado em</th>
                     <th>Itens Retornados</th>
-                    <th>Retornar ao Estoque</th> </tr>
+                    <th>Retornar ao Estoque</th>
+                </tr>
             </thead>
             <tbody>
                 {% for ordem in ordens_servico %}
@@ -45,21 +55,22 @@
                     <td>{{ ordem.servico.nome }}</td>
                     <td>{{ ordem.status }}</td>
                     <td>{{ ordem.tamanho }}</td>
-                    <td>{{ ordem.observacoes|default:"-" }}</td>
+                    {# Adicione contenteditable="true" aqui #}
+                    <td class="editable-cell" data-ordem-id="{{ ordem.id }}" data-campo="observacoes" contenteditable="true">{{ ordem.observacoes|default:"-" }}</td>
                     <td>{{ ordem.criado_em|date:"d/m/Y H:i" }}</td>
                     <td>{{ ordem.atualizado_em|date:"d/m/Y H:i" }}</td>
                     <td>{{ ordem.retornou }}</td>
                     <td>
                         <div class="input-group input-group-sm retornar-container">
-                            <input type="number" 
-                                   name="quantidade_retorno_{{ ordem.id }}" 
-                                   class="form-control retornar-input" 
-                                   min="1" 
-                                   max="{{ ordem.quantidade|add:'-ordem.retornou' }}" 
+                            <input type="number"
+                                   name="quantidade_retorno_{{ ordem.id }}"
+                                   class="form-control retornar-input"
+                                   min="1"
+                                   max="{{ ordem.quantidade|add:'-ordem.retornou' }}"
                                    value="1"
                                    placeholder="Qtd">
-                            <button type="button" 
-                                    class="btn btn-success btn-sm retornar-item-inventario" 
+                            <button type="button"
+                                    class="btn btn-success btn-sm retornar-item-inventario"
                                     data-ordem-id="{{ ordem.id }}"
                                     title="Retornar ao Inventário">
                                 <i class="bi bi-arrow-return-left"></i> Retornar
@@ -79,7 +90,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
 
 <script>
     $(document).ready(function() {
@@ -99,26 +109,24 @@
         }
         const csrftoken = getCookie('csrftoken');
 
+        // Script para retornar itens (já existente)
         $('.retornar-item-inventario').on('click', function() {
             var ordemId = $(this).data('ordem-id');
             var quantidadeRetorno = $('input[name="quantidade_retorno_' + ordemId + '"]').val();
 
-            // Validação simples de input
             if (!quantidadeRetorno || parseInt(quantidadeRetorno) <= 0) {
                 alert('Por favor, insira uma quantidade válida para retornar.');
                 return;
             }
-            
-            // Pega o valor máximo permitido para a Ordem de Serviço
+
             var maxAllowed = parseInt($('input[name="quantidade_retorno_' + ordemId + '"]').attr('max'));
             if (parseInt(quantidadeRetorno) > maxAllowed) {
                 alert('A quantidade a ser retornada excede o limite disponível para esta ordem de serviço.');
                 return;
             }
 
-
             $.ajax({
-                url: '{% url "retornar_ao_inventario" %}', // Nova URL para a função de retorno
+                url: '{% url "retornar_ao_inventario" %}',
                 type: 'POST',
                 data: {
                     'ordem_servico_id': ordemId,
@@ -128,7 +136,7 @@
                 success: function(response) {
                     if (response.status === 'success') {
                         alert('Itens retornados ao inventário com sucesso: ' + response.message);
-                        location.reload(); // Recarrega a página para atualizar os dados
+                        location.reload();
                     } else {
                         alert('Erro ao retornar itens: ' + response.message);
                     }
@@ -144,6 +152,75 @@
                     alert('Erro ao retornar itens: ' + errorMessage);
                 }
             });
+        });
+
+        // SCRIPT para edição de células
+        $('.editable-cell').on('focusout', function() {
+            var cell = $(this);
+            var ordemId = cell.data('ordem-id');
+            var campo = cell.data('campo'); // 'observacoes'
+            var novoValor = cell.text().trim(); // Pega o texto atual da célula
+
+            // Para evitar requisições desnecessárias, podemos comparar com o valor original
+            // Adicionei um data-original-value no 'focusin'
+            var originalValue = cell.data('original-value');
+            if (novoValor === originalValue) {
+                console.log('Valor não foi alterado.');
+                return; // Sai da função se o valor não mudou
+            }
+
+            $.ajax({
+                url: '{% url "atualizar_ordem_servico_campo" %}', // Nova URL
+                type: 'POST',
+                data: {
+                    'ordem_servico_id': ordemId,
+                    'campo': campo,
+                    'valor': novoValor,
+                    'csrfmiddlewaretoken': csrftoken
+                },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        console.log('Campo atualizado com sucesso!');
+                        cell.removeClass('bg-warning bg-danger').addClass('bg-success');
+                        setTimeout(() => cell.removeClass('bg-success'), 1000);
+                        cell.data('original-value', response.novo_valor || novoValor); // Atualiza o original-value
+                        cell.text(response.novo_valor || novoValor); // Garante que o texto exibido é o do servidor
+                    } else {
+                        alert('Erro ao atualizar campo: ' + response.message);
+                        cell.addClass('bg-danger');
+                        setTimeout(() => cell.removeClass('bg-danger'), 1000);
+                        cell.text(originalValue); // Reverte para o valor original em caso de erro
+                    }
+                },
+                error: function(xhr, status, error) {
+                    let errorMessage = 'Erro desconhecido.';
+                    try {
+                        const errorResponse = JSON.parse(xhr.responseText);
+                        errorMessage = errorResponse.message || 'Erro no servidor.';
+                    } catch (e) {
+                        errorMessage = xhr.responseText || errorMessage;
+                    }
+                    alert('Erro na requisição: ' + errorMessage);
+                    cell.addClass('bg-danger');
+                    setTimeout(() => cell.removeClass('bg-danger'), 1000);
+                    cell.text(originalValue); // Reverte para o valor original em caso de erro
+                }
+            });
+        }).on('keydown', function(e) {
+            // Permite salvar com Enter
+            if (e.key === 'Enter') {
+                e.preventDefault(); // Impede a quebra de linha
+                $(this).blur();     // Dispara o evento 'focusout'
+            }
+        }).on('focusin', function() {
+            // Armazena o valor original ao focar para comparação posterior
+            $(this).data('original-value', $(this).text().trim());
+
+            // Limpa o texto padrão "-" quando a edição começa
+            if ($(this).text().trim() === '-') {
+                $(this).text('');
+            }
+            $(this).removeClass('bg-success bg-danger'); // Remove feedback de tentativas anteriores
         });
     });
 </script>
