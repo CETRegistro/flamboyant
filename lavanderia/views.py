@@ -28,6 +28,7 @@ def ordens_servico_por_categoria(request, categoria_id):
     return render(request, 'ordens_servico_categoria.html', context)
 
 
+@csrf_exempt
 @require_POST
 def retornar_ao_inventario(request):
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
@@ -78,7 +79,7 @@ def retornar_ao_inventario(request):
     return JsonResponse({'status': 'error', 'message': 'Requisição inválido.'}, status=400)
 
 
-
+@csrf_exempt
 @require_POST
 def criar_servico(request):
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
