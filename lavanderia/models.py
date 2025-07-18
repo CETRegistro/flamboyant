@@ -47,11 +47,8 @@ class Inventario(models.Model):
 
 class OrdemServico(models.Model): # Modelo da gestão de lavanderia
     STATUS_CHOICES = [
-        ('Sujo', 'Sujo'),
-        ('Manchado', 'Manchado'),
-        ('Lavando', 'Lavando'),
-        ('Limpo', 'Limpo'),
-        ('Retornou com mancha', 'Retornou com mancha'),
+        ('Sujo', 'Sujo'),                
+        ('Limpo', 'Limpo'),        
         ('Operação concluída','Operação concluída')
     ]
 
